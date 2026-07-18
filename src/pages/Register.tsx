@@ -1,0 +1,124 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Zap, ArrowRight, Eye, EyeOff, Check } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { motion } from 'framer-motion';
+import { toast } from 'sonner';
+
+export default function Register() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+
+  const pwStrength = password.length >= 8 ? (password.match(/[A-Z]/) && password.match(/[0-9]/) ? 'strong' : 'medium') : 'weak';
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    toast.success('Регистрация выполнена (мок)');
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/3 right-1/4 w-96 h-96 rounded-full bg-primary/5 blur-[120px]" />
+        <div className="absolute bottom-1/3 left-1/4 w-80 h-80 rounded-full bg-accent/5 blur-[100px]" />
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-sm relative z-10"
+      >
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center">
+            <Zap className="w-5 h-5 text-primary-foreground" />
+          </div>
+          <span className="text-xl font-bold tracking-tight">NeuralHub</span>
+        </div>
+
+        <div className="rounded-3xl bg-card border border-border/50 p-6 md:p-8 shadow-2xl shadow-black/20">
+          <h2 className="text-xl font-bold text-center mb-1">Создать аккаунт</h2>
+          <p className="text-sm text-muted-foreground text-center mb-6">Начните работать с нейросетями</p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Имя</Label>
+              <Input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Ваше имя"
+                className="bg-secondary/50 border-border/50 rounded-xl h-11"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Email</Label>
+              <Input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="bg-secondary/50 border-border/50 rounded-xl h-11"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Пароль</Label>
+              <div className="relative">
+                <Input
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Минимум 8 символов"
+                  className="bg-secondary/50 border-border/50 rounded-xl h-11 pr-10"
+                />
+                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {showPw ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
+                </button>
+              </div>
+              {password && (
+                <div className="flex items-center gap-2 mt-1.5">
+                  <div className="flex-1 flex gap-1">
+                    <div className={`h-1 rounded-full flex-1 ${pwStrength !== 'weak' ? 'bg-emerald-400' : 'bg-destructive'}`} />
+                    <div className={`h-1 rounded-full flex-1 ${pwStrength === 'strong' ? 'bg-emerald-400' : pwStrength === 'medium' ? 'bg-yellow-500' : 'bg-muted'}`} />
+                    <div className={`h-1 rounded-full flex-1 ${pwStrength === 'strong' ? 'bg-emerald-400' : 'bg-muted'}`} />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">
+                    {pwStrength === 'strong' ? 'Надёжный' : pwStrength === 'medium' ? 'Средний' : 'Слабый'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <Button type="submit" className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 gap-2">
+              Зарегистрироваться <ArrowRight className="w-4 h-4" />
+            </Button>
+          </form>
+
+          <p className="mt-4 text-center text-[10px] text-muted-foreground/60 leading-relaxed">
+            Регистрируясь, вы соглашаетесь с условиями использования и политикой конфиденциальности.
+          </p>
+
+          <div className="mt-4 flex items-center gap-3">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-[10px] text-muted-foreground uppercase">или</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <button className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-secondary/50 border border-border/50 hover:bg-secondary/80 transition-colors text-sm">
+              <img src="https://www.google.com/favicon.ico" alt="" className="w-4 h-4" />
+              Google
+            </button>
+          </div>
+
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            Уже есть аккаунт?{' '}
+            <Link to="/signin" className="text-primary hover:underline font-medium">Войти</Link>
+          </p>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
