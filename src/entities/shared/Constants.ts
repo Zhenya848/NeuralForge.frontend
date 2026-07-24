@@ -12,6 +12,23 @@ export const COLORS = [
   '#ef4444', '#ec4899', '#14b8a6', '#6366f1',
 ] as const;
 
+interface DefaultNamesProps {
+  projectName: string;
+  folderName: string;
+  chatName: string;
+}
+
+export const SYSTEM_PROJECT_ID = 'system-project';
+export const SYSTEM_CHAT_FOLDER_ID = 'system-chat-folder';
+export const SYSTEM_FRAGMENT_FOLDER_ID = 'system-fragment-folder';
+
+export const DEFAULT_NAMES: DefaultNamesProps = 
+{
+  projectName: "Default project",
+  folderName: "Default folder",
+  chatName: "Default chat"
+}
+
 export interface AiModelInfo {
   id: string;
   name: string;

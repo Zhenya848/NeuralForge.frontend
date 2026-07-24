@@ -8,7 +8,7 @@ import EmojiPicker from '@/components/ui/EmojiPicker';
 import { getEmoji, getColor } from '@/entities/shared/Constants';
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#6366f1'];
-import { useStore } from '@/lib/store';
+import { useStore } from '@/shared/lib/store';
 import { toast } from 'sonner';
 import type { Project } from '@/entities/projects/Project';
 

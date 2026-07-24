@@ -1,4 +1,4 @@
-import { AI_MODELS } from '@/lib/mockData';
+import { AI_MODELS } from '@/shared/lib/mockData';
 
 interface AiModelBadgeProps {
   modelId: string;

@@ -10,4 +10,5 @@ export interface Project {
   colorId: number;
   fragmentFolders: FragmentFolder[];
   chatFolders: ChatFolder[];
+  isSystem?: boolean;
 }

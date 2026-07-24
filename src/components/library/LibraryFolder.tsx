@@ -12,7 +12,7 @@ import AiModelBadge from '@/components/chat/AiModelBadge';
 import EmojiPicker from '@/components/ui/EmojiPicker';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { useStore } from '@/lib/store';
+import { useStore } from '@/shared/lib/store';
 import type { FragmentFolder } from '@/entities/folders/FragmentFolder';
 import type { Project } from '@/entities/projects/Project';
 import type { Fragment } from '@/entities/fragments/Fragment';

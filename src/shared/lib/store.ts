@@ -5,10 +5,10 @@ import type { FragmentFolder } from '@/entities/folders/FragmentFolder';
 import type { ChatFolder } from "@/entities/folders/ChatFolder";
 import type { Project } from "@/entities/projects/Project";
 import type { Message } from "@/entities/chats/messages/Message";
-import { EMOJIS, COLORS, AI_MODELS, getMessageRole } from '@/entities/shared/Constants';
+import { EMOJIS, COLORS, AI_MODELS, getMessageRole, SYSTEM_PROJECT_ID, SYSTEM_CHAT_FOLDER_ID, SYSTEM_FRAGMENT_FOLDER_ID } from '@/entities/shared/Constants';
 import {
   MOCK_PROJECTS, MOCK_CHAT_FOLDERS, MOCK_CHATS,
-  MOCK_FRAGMENT_FOLDERS, MOCK_ENERGY,
+  MOCK_FRAGMENT_FOLDERS, MOCK_ENERGY
 } from './mockData';
 
 export { getMessageRole };
@@ -51,11 +51,25 @@ function generateId(): string {
 
 // ─── Global state ────────────────────────────────────────────────────────────
 
+const systemProject: Project = {
+  id: SYSTEM_PROJECT_ID, userId: '', name: 'Без проекта',
+  description: 'Системный проект для элементов без проекта',
+  emojiId: 0, colorId: 0, isSystem: true, chatFolders: [], fragmentFolders: [],
+};
+const systemChatFolder: ChatFolder = {
+  id: SYSTEM_CHAT_FOLDER_ID, userId: '', parentId: null,
+  name: 'Без папки', emojiId: 0, projectId: SYSTEM_PROJECT_ID, isSystem: true, chats: [],
+};
+const systemFragmentFolder: FragmentFolder = {
+  id: SYSTEM_FRAGMENT_FOLDER_ID, userId: '', parentId: null,
+  name: 'Без категории', emojiId: 0, projectId: SYSTEM_PROJECT_ID, isSystem: true, fragments: [],
+};
+
 let globalState: GlobalState = {
   chats: MOCK_CHATS.map(c => ({ ...c, messages: [...c.messages] })),
-  chatFolders: [...MOCK_CHAT_FOLDERS],
-  fragmentFolders: MOCK_FRAGMENT_FOLDERS.map(f => ({ ...f, fragments: [...f.fragments] })),
-  projects: [...MOCK_PROJECTS],
+  chatFolders: [systemChatFolder, ...MOCK_CHAT_FOLDERS],
+  fragmentFolders: [systemFragmentFolder, ...MOCK_FRAGMENT_FOLDERS.map(f => ({ ...f, fragments: [...f.fragments] }))],
+  projects: [systemProject, ...MOCK_PROJECTS],
   energy: { ...MOCK_ENERGY },
   activeChatId: MOCK_CHATS[0]?.id ?? null,
   activeProjectId: 'all',
@@ -112,7 +126,7 @@ export function useStore() {
       const project: Project = {
         id: generateId(), userId: '', name, description,
         emojiId: emojiToId(icon), colorId: colorToId(color),
-        chatFolders: [], fragmentFolders: [],
+        chatFolders: [], fragmentFolders: []
       };
       globalState.projects.push(project);
       notify();
@@ -140,9 +154,10 @@ export function useStore() {
     },
 
     deleteProject: (projectId: string) => {
+      if (projectId === SYSTEM_PROJECT_ID) return;
       globalState.projects = globalState.projects.filter(p => p.id !== projectId);
-      globalState.chatFolders.forEach(f => { if (f.projectId === projectId) f.projectId = ''; });
-      globalState.fragmentFolders.forEach(f => { if (f.projectId === projectId) f.projectId = ''; });
+      globalState.chatFolders.forEach(f => { if (f.projectId === projectId) f.projectId = SYSTEM_PROJECT_ID; });
+      globalState.fragmentFolders.forEach(f => { if (f.projectId === projectId) f.projectId = SYSTEM_PROJECT_ID; });
       if (globalState.activeProjectId === projectId) globalState.activeProjectId = 'all';
       notify();
     },
@@ -150,10 +165,11 @@ export function useStore() {
     // ── Chats ─────────────────────────────────────────────────────────────
     createChat: (name: string, defaultAiModel: string, initialMessages?: Message[], folderId?: string | null) => {
       const chat: Chat = {
-        id: generateId(), userId: '', folderId: folderId ?? '',
+        id: generateId(), userId: '', folderId: folderId || SYSTEM_CHAT_FOLDER_ID,
         name, connections: [], messages: initialMessages ?? [],
         usedAiModels: initialMessages ? [...new Set(initialMessages.map(m => m.model).filter((model): model is string => model != null))] : [defaultAiModel]
       };
+
       globalState.chats.unshift(chat);
       globalState.activeChatId = chat.id;
       notify();
@@ -173,11 +189,14 @@ export function useStore() {
 
     setChatFolder: (chatId: string, folderId: string | null) => {
       const chat = globalState.chats.find(c => c.id === chatId);
-      if (chat) { chat.folderId = folderId ?? ''; notify(); }
+      if (chat) { chat.folderId = folderId || SYSTEM_CHAT_FOLDER_ID; notify(); }
     },
 
     setChatProject: (chatId: string, projectId: string | null) => {
-      // Backend derives project from folder; for mock, keep as no-op
+      if (!projectId) {
+        const chat = globalState.chats.find(c => c.id === chatId);
+        if (chat) { chat.folderId = SYSTEM_CHAT_FOLDER_ID; }
+      }
       notify();
     },
 
@@ -210,12 +229,14 @@ export function useStore() {
       if (msg) { msg.isBookmarked = !msg.isBookmarked; notify(); }
     },
 
+
+
     // ── Chat folders ──────────────────────────────────────────────────────
     createFolder: (name: string, parentId?: string | null, icon?: string, projectId?: string | null) => {
       const folder: ChatFolder = {
         id: generateId(), userId: '', parentId: parentId ?? null,
         name, emojiId: icon ? emojiToId(icon) : 0,
-        projectId: projectId ?? '', chats: [],
+        projectId: projectId || SYSTEM_PROJECT_ID, chats: []
       };
       globalState.chatFolders.push(folder);
       notify();
@@ -234,16 +255,16 @@ export function useStore() {
 
     deleteFolder: (folderId: string) => {
       const folder = globalState.chatFolders.find(f => f.id === folderId);
-      if (!folder) return;
+      if (!folder || folder.isSystem) return;
       globalState.chatFolders.forEach(f => { if (f.parentId === folderId) f.parentId = folder.parentId; });
-      globalState.chats.forEach(c => { if (c.folderId === folderId) c.folderId = folder.parentId ?? ''; });
+      globalState.chats.forEach(c => { if (c.folderId === folderId) c.folderId = folder.parentId ?? SYSTEM_CHAT_FOLDER_ID; });
       globalState.chatFolders = globalState.chatFolders.filter(f => f.id !== folderId);
       notify();
     },
 
     setFolderProject: (folderId: string, projectId: string | null) => {
       const f = globalState.chatFolders.find(f => f.id === folderId);
-      if (f) { f.projectId = projectId ?? ''; notify(); }
+      if (f && !f.isSystem) { f.projectId = projectId || SYSTEM_PROJECT_ID; notify(); }
     },
 
     // ── Chat connections (replaces chatLinks) ────────────────────────────
@@ -279,7 +300,7 @@ export function useStore() {
       const folder: FragmentFolder = {
         id: generateId(), userId: '', parentId: parentId ?? null,
         name, emojiId: icon ? emojiToId(icon) : 0,
-        projectId: projectId ?? '', fragments: [],
+        projectId: projectId || SYSTEM_PROJECT_ID, fragments: []
       };
       globalState.fragmentFolders.push(folder);
       notify();
@@ -313,23 +334,19 @@ export function useStore() {
 
     // ── Fragments ────────────────────────────────────────────────────────
     saveFragment: (fragment: { title?: string; name?: string; content: string; sourceModel?: string; sourceChatId?: string; sourceMessageId?: string }, clusterId?: string | null, projectId?: string | null) => {
+      const targetClusterId = clusterId || SYSTEM_FRAGMENT_FOLDER_ID;
+      const cluster = globalState.fragmentFolders.find(f => f.id === targetClusterId);
+
+      if (!cluster) 
+        return;
+
       const newFragment: Fragment = {
-        id: generateId(), userId: '', folderId: clusterId ?? '',
+        id: generateId(), userId: '', folderId: targetClusterId,
         name: fragment.name ?? fragment.title ?? 'Фрагмент',
         content: fragment.content, messageId: fragment.sourceMessageId ?? '',
         aiModel: fragment.sourceModel,
       };
-      if (clusterId) {
-        const cluster = globalState.fragmentFolders.find(f => f.id === clusterId);
-        if (cluster) cluster.fragments.push(newFragment);
-      } else {
-        let uncategorized = globalState.fragmentFolders.find(f => f.id === 'uncategorized');
-        if (!uncategorized) {
-          uncategorized = { id: 'uncategorized', userId: '', parentId: null, name: 'Без категории', emojiId: 0, projectId: projectId ?? '', fragments: [] };
-          globalState.fragmentFolders.push(uncategorized);
-        }
-        uncategorized.fragments.push(newFragment);
-      }
+      cluster.fragments.push(newFragment);
       notify();
     },
 

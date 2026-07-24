@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Check, X } from 'lucide-react';
 import EmojiPicker from '@/components/ui/EmojiPicker';
-import { useStore } from '@/lib/store';
+import { useStore } from '@/shared/lib/store';
 import { toast } from 'sonner';
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#6366f1'];

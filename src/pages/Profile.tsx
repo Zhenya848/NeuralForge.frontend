@@ -4,7 +4,7 @@ import { User, Mail, Zap, CreditCard, Bell, Shield, LogOut, ChevronRight, Check 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
-import { useStore } from '@/lib/store';
+import { useStore } from '@/shared/lib/store';
 import { toast } from 'sonner';
 
 type NotificationType = {

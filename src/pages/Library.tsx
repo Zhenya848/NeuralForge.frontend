@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FolderOpen, Search, Plus, Check, X, Layers } from 'lucide-react';
+import { FolderOpen, Search, Plus, Check, X, Layers, Eye, ExternalLink, ArrowRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useStore } from '@/lib/store';
-import { getEmoji, getColor } from '@/entities/shared/Constants';
+import { useStore } from '@/shared/lib/store';
+import { getEmoji, getColor, SYSTEM_FRAGMENT_FOLDER_ID, SYSTEM_PROJECT_ID } from '@/entities/shared/Constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import FragmentDetailModal from '@/components/library/FragmentDetailModal';
@@ -13,6 +13,7 @@ import EmojiPicker from '@/components/ui/EmojiPicker';
 import LibraryFolder from '@/components/library/LibraryFolder';
 import type { Fragment } from '@/entities/fragments/Fragment';
 import type { FragmentFolder } from '@/entities/folders/FragmentFolder';
+import AiModelBadge from '@/components/chat/AiModelBadge';
 
 type MoveFragType = {
   frag: Fragment;
@@ -69,10 +70,14 @@ export default function Library() {
   const q = search.toLowerCase().trim();
   const projectMatch = (c: FragmentFolder) =>
     projectFilter === 'all' ? true
-    : projectFilter === 'none' ? !c.projectId
+    : projectFilter === 'none' ? c.projectId === SYSTEM_PROJECT_ID
     : c.projectId === projectFilter;
 
-  const rootFolders = clusters.filter(c => !c.parentId && projectMatch(c));
+  const rootFolders = clusters.filter(c => !c.parentId && !c.isSystem && projectMatch(c));
+  const systemCluster: FragmentFolder = clusters.find(c => c.id === SYSTEM_FRAGMENT_FOLDER_ID)!;
+  const uncategorizedFrags = (projectFilter === 'all' || projectFilter === 'none')
+    ? (systemCluster?.fragments ?? [])
+    : [];
 
   // Filter folders by search (simple — show all if no query)
   const visibleRoots = q
@@ -170,7 +175,7 @@ export default function Library() {
           >
             📭 Без проекта
           </button>
-          {projects.map(p => {
+          {projects.filter(p => !p.isSystem).map(p => {
             const count = clusters.reduce((s, c) => s + (c.projectId === p.id ? c.fragments.length : 0), 0);
             return (
               <button
@@ -213,6 +218,36 @@ export default function Library() {
                 projects={projects}
               />
             ))
+          )}
+
+          {uncategorizedFrags.length > 0 && !q && (
+            <div className="mt-3 pt-3 border-t border-border/30">
+              <div className="px-2 py-1 mb-1">
+                <span className="text-[10px] font-semibold text-muted-foreground/40 uppercase tracking-wider">📭 Без категории</span>
+              </div>
+              <div className="divide-y divide-border/20">
+                {uncategorizedFrags.map(frag => (
+                  <div key={frag.id} className="px-2 py-2.5 hover:bg-secondary/20 transition-colors group/frag">
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <h4 className="text-xs font-medium">{frag.name}</h4>
+                          {frag.aiModel && <AiModelBadge modelId={frag.aiModel} size="xs" showName={false} />}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground line-clamp-2 cursor-pointer hover:text-foreground/70" onClick={() => setViewFrag(frag)}>
+                          {frag.content}
+                        </p>
+                      </div>
+                      <div className="hidden sm:flex items-center gap-0.5 opacity-0 group-hover/frag:opacity-100 transition-opacity flex-shrink-0">
+                        <button onClick={() => setViewFrag(frag)} className="p-1 rounded hover:bg-secondary"><Eye className="w-3 h-3 text-muted-foreground" /></button>
+                        <button onClick={() => setMoveFrag({ frag, clusterId: systemCluster.id })} className="p-1 rounded hover:bg-secondary"><ArrowRight className="w-3 h-3 text-accent" /></button>
+                        <button onClick={() => goToSource(frag)} className="p-1 rounded hover:bg-secondary"><ExternalLink className="w-3 h-3 text-primary" /></button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>

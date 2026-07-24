@@ -1,23 +1,23 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useStore } from '@/lib/store';
+import { useStore } from '@/shared/lib/store';
 import { getEmoji } from '@/entities/shared/Constants';
 import { toast } from 'sonner';
 import { ArrowRight } from 'lucide-react';
 import type { Fragment } from '@/entities/fragments/Fragment';
 import type { FragmentFolder } from '@/entities/folders/FragmentFolder';
 
-interface MoveFragmentModalProps {
+interface Props {
   frag: Fragment;
   fromClusterId: string;
   clusters: FragmentFolder[];
   onClose: () => void;
 }
 
-export default function MoveFragmentModal({ frag, fromClusterId, clusters, onClose }: MoveFragmentModalProps) {
+export default function MoveFragmentModal({ frag, fromClusterId, clusters, onClose }: Props) {
   const { moveFragment } = useStore();
 
-  const otherClusters = clusters.filter(c => c.id !== fromClusterId);
+  const otherClusters = clusters.filter(c => c.id !== fromClusterId && !c.isSystem);
 
   const handleMove = (toClusterId: string) => {
     moveFragment(fromClusterId, frag.id, toClusterId);

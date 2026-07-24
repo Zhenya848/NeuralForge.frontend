@@ -1,5 +1,5 @@
 import { BookmarkCheck, MessageSquare, ChevronRight, X } from 'lucide-react';
-import { useStore } from '@/lib/store';
+import { useStore } from '@/shared/lib/store';
 import { getMessageRole } from '@/entities/shared/Constants';
 
 interface BookmarksSidebarProps {

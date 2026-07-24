@@ -1,5 +1,5 @@
 import { Zap } from 'lucide-react';
-import { useStore } from '@/lib/store';
+import { useStore } from '@/shared/lib/store';
 
 export default function EnergyBar() {
   const { energy } = useStore();

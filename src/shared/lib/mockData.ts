@@ -3,6 +3,7 @@ import type { FragmentFolder } from '@/entities/folders/FragmentFolder';
 import type { ChatFolder } from "@/entities/folders/ChatFolder";
 import type { Project } from "@/entities/projects/Project";
 import { AI_MODELS } from '@/entities/shared/Constants';
+import { DEFAULT_NAMES } from "@/entities/shared/Constants";
 
 // Re-export AI_MODELS for backward compatibility
 export { AI_MODELS };
@@ -19,7 +20,6 @@ export const MOCK_PROJECTS: Project[] = [
 ];
 
 // ─── Chat folders ────────────────────────────────────────────────────────────
-
 export const MOCK_CHAT_FOLDERS: ChatFolder[] = [
   { id: G(101), userId: G(0), parentId: null, name: 'Разработка', emojiId: 24, projectId: G(1), chats: [] },
   { id: G(102), userId: G(0), parentId: G(101), name: 'Frontend', emojiId: 14, projectId: G(1), chats: [] },
@@ -77,17 +77,17 @@ export const MOCK_FRAGMENT_FOLDERS: FragmentFolder[] = [
     fragments: [
       { id: G(501), userId: G(0), folderId: G(401), name: 'Паттерны микросервисов', content: A1, messageId: G(302), aiModel: 'chatgpt' },
       { id: G(502), userId: G(0), folderId: G(401), name: 'Database per Service', content: 'Database per Service — каждый микросервис владеет своей БД. Преимущества: автономность, изоляция данных. Недостатки: распределённые транзакции.', messageId: G(304), aiModel: 'chatgpt' },
-    ],
+    ]
   },
   {
     id: G(402), userId: G(0), parentId: null, name: 'React оптимизация', emojiId: 5, projectId: G(1),
     fragments: [
       { id: G(503), userId: G(0), folderId: G(402), name: 'Мемоизация в React', content: 'React.memo для чистых компонентов, useMemo для вычислений, useCallback для коллбэков', messageId: G(308), aiModel: 'chatgpt' },
-    ],
+    ]
   },
   {
     id: G(403), userId: G(0), parentId: null, name: 'Маркетинг стратегии', emojiId: 10, projectId: G(2),
-    fragments: [],
+    fragments: []
   },
 ];
 

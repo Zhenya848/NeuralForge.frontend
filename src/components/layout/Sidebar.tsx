@@ -5,9 +5,9 @@ import {
   ChevronDown, ChevronRight, X, CreditCard, Pencil, Trash2,
   FolderOpen, Layers
 } from 'lucide-react';
-import { useStore } from '@/lib/store';
+import { useStore } from '@/shared/lib/store';
 import EnergyBar from '@/components/chat/EnergyBar';
-import { getEmoji } from '@/entities/shared/Constants';
+import { getEmoji, SYSTEM_CHAT_FOLDER_ID, SYSTEM_PROJECT_ID } from '@/entities/shared/Constants';
 import AiModelBadge from '@/components/chat/AiModelBadge';
 import FolderContextMenu from '@/components/layout/FolderContextMenu';
 import FolderIconModal from '@/components/layout/FolderIconModal';
@@ -289,11 +289,14 @@ export default function Sidebar({ onOpenSearch, mobileOpen, onCloseMobile }: Sid
   // Filter tree by active project
   const projectFilter = (item: ChatFolder) => {
     if (activeProjectId === 'all') return true;
-    if (activeProjectId === 'none') return !item.projectId;
+    if (activeProjectId === 'none') return item.projectId === SYSTEM_PROJECT_ID;
     return item.projectId === activeProjectId;
   };
 
-  const rootFolders = folders.filter(f => f.parentId === null).filter(projectFilter);
+  const rootFolders = folders.filter(f => f.parentId === null && !f.isSystem).filter(projectFilter);
+  const unfoldered = (activeProjectId === 'all' || activeProjectId === 'none')
+    ? chats.filter(c => c.folderId === SYSTEM_CHAT_FOLDER_ID)
+    : [];
 
   const navItems = [
     { path: '/', icon: LayoutDashboard, label: 'Главная' },
@@ -377,6 +380,27 @@ export default function Sidebar({ onOpenSearch, mobileOpen, onCloseMobile }: Sid
             handlers={handlers}
           />
         ))}
+
+        {unfoldered.length > 0 && (
+          <div className="mt-2">
+            <div className="px-2 py-1">
+              <span className="text-[10px] font-semibold text-muted-foreground/40 uppercase tracking-wider">Без папки</span>
+            </div>
+            {unfoldered.map(chat => (
+              <ChatItem
+                key={chat.id}
+                chat={chat}
+                isActive={activeChatId === chat.id}
+                onClick={() => handleChatClick(chat.id)}
+                onRename={handleRenameChat}
+                onDelete={handleDeleteChat}
+                onAssignProject={(c) => handleAssignProject(c, 'chat')}
+                onMoveFolder={(c) => setMoveChatId(c.id)}
+                depth={0}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Empty state hint */}
         {rootFolders.length === 0 && (

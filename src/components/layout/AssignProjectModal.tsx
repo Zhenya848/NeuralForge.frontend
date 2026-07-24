@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
-import { useStore } from '@/lib/store';
+import { useStore } from '@/shared/lib/store';
 import { getEmoji } from '@/entities/shared/Constants';
 import { toast } from 'sonner';
 
@@ -37,10 +37,10 @@ export default function AssignProjectModal({ open, onClose, targetType, targetId
             <span>📭</span> Без проекта
             {!currentProjectId && <Check className="w-3.5 h-3.5 ml-auto text-primary" />}
           </button>
-          {projects.map(p => (
-            <button
-              key={p.id}
-              onClick={() => assign(p.id)}
+          {projects.filter(p => !p.isSystem).map(p => (
+              <button
+                key={p.id}
+                onClick={() => assign(p.id)}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${currentProjectId === p.id ? 'bg-primary/15 border border-primary/30 text-foreground' : 'hover:bg-secondary/50 border border-transparent text-muted-foreground'}`}
             >
               <span>{getEmoji(p.emojiId)}</span> {p.name}

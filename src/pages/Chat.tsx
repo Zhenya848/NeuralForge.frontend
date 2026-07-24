@@ -6,8 +6,8 @@ import {
 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useStore } from '@/lib/store';
-import { AI_MODELS } from '@/lib/mockData';
+import { useStore } from '@/shared/lib/store';
+import { AI_MODELS } from '@/shared/lib/mockData';
 import AiModelBadge from '@/components/chat/AiModelBadge';
 import ChatMessage from '@/components/chat/ChatMessage';
 import ChatInput from '@/components/chat/ChatInput';

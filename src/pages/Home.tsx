@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, FolderOpen, Zap, ArrowRight, Hash, Briefcase } from 'lucide-react';
-import { useStore } from '@/lib/store';
-import { AI_MODELS } from '@/lib/mockData';
+import { useStore } from '@/shared/lib/store';
+import { AI_MODELS } from '@/shared/lib/mockData';
 import { motion } from 'framer-motion';
 
 export default function Home() {
@@ -69,8 +69,8 @@ export default function Home() {
           {[
             { label: 'Чатов', value: chats.length, icon: MessageSquare, color: 'text-primary' },
             { label: 'Фрагментов', value: totalFragments, icon: FolderOpen, color: 'text-yellow-500' },
-            { label: 'Кластеров', value: clusters.length, icon: Hash, color: 'text-accent' },
-            { label: 'Проектов', value: projects.length, icon: Briefcase, color: 'text-emerald-400' },
+            { label: 'Кластеров', value: clusters.filter(c => !c.isSystem).length, icon: Hash, color: 'text-accent' },
+            { label: 'Проектов', value: projects.filter(p => !p.isSystem).length, icon: Briefcase, color: 'text-emerald-400' },
           ].map((stat, i) => (
             <div key={i} className="p-4 rounded-2xl bg-card border border-border/50">
               <stat.icon className={`w-4 h-4 ${stat.color} mb-2`} />

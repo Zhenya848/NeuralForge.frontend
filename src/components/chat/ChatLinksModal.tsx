@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useStore, type ChatLinkType } from '@/lib/store';
+import { useStore, type ChatLinkType } from '@/shared/lib/store';
 import { toast } from 'sonner';
 import { Link2, Plus, X, MessageSquare, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

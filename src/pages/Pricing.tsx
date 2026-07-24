@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, Zap, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PRICING_PLANS } from '@/lib/mockData';
+import { PRICING_PLANS } from '@/shared/lib/mockData';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink } from 'lucide-react';
 import { getEmoji, getColor } from '@/entities/shared/Constants';
 import AiModelBadge from '@/components/chat/AiModelBadge';
-import { useStore } from '@/lib/store';
+import { useStore } from '@/shared/lib/store';
 import type { Fragment } from '@/entities/fragments/Fragment';
 
 interface FragmentDetailModalProps {

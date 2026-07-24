@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Search, MessageSquare, FolderOpen, Bookmark } from 'lucide-react';
-import { useStore } from '@/lib/store';
+import { useStore } from '@/shared/lib/store';
 import { getEmoji } from '@/entities/shared/Constants';
 import AiModelBadge from '@/components/chat/AiModelBadge';
 import { useNavigate } from 'react-router-dom';

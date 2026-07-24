@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowRightLeft } from 'lucide-react';
-import { useStore } from '@/lib/store';
-import { AI_MODELS } from '@/lib/mockData';
+import { useStore } from '@/shared/lib/store';
+import { AI_MODELS } from '@/shared/lib/mockData';
 import AiModelBadge from './AiModelBadge';
 import type { Chat } from '@/entities/chats/Chat';
 

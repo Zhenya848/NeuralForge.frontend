@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useStore } from '@/lib/store';
-import { getEmoji } from '@/entities/shared/Constants';
+import { useStore } from '@/shared/lib/store';
+import { getEmoji, SYSTEM_CHAT_FOLDER_ID } from '@/entities/shared/Constants';
 import { toast } from 'sonner';
 import { Folder, Plus, ChevronRight } from 'lucide-react';
 import type { ChatFolder } from '@/entities/folders/ChatFolder';
@@ -51,7 +51,7 @@ export default function FolderSelectorModal({ open, onClose, chatId }: FolderSel
   const [newParentId, setNewParentId] = useState<string | null>(null);
 
   const chat = chats.find(c => c.id === chatId);
-  const rootFolders = folders.filter(f => f.parentId === null);
+  const rootFolders = folders.filter(f => f.parentId === null && !f.isSystem);
 
   const handleSelect = (folderId: string) => {
     setChatFolder(chatId, folderId);
@@ -84,7 +84,7 @@ export default function FolderSelectorModal({ open, onClose, chatId }: FolderSel
           </DialogTitle>
         </DialogHeader>
 
-        {chat?.folderId && (
+        {chat?.folderId && chat.folderId !== SYSTEM_CHAT_FOLDER_ID && (
           <button
             onClick={handleRemoveFromFolder}
             className="text-xs text-muted-foreground hover:text-destructive text-left transition-colors"

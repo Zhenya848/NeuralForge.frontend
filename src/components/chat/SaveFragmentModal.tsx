@@ -4,11 +4,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Bookmark, Plus, FolderOpen, ChevronRight, ChevronDown, X } from 'lucide-react';
-import { useStore } from '@/lib/store';
+import { useStore } from '@/shared/lib/store';
 import { toast } from 'sonner';
 import EmojiPicker from '@/components/ui/EmojiPicker';
 import type { FragmentFolder } from '@/entities/folders/FragmentFolder';
-import { EMOJIS } from '@/entities/shared/Constants';
+import { EMOJIS, getEmoji } from '@/entities/shared/Constants';
 import type { Message } from '@/entities/chats/messages/Message';
 
 interface FolderRowProps {
@@ -45,7 +45,7 @@ function FolderRow({ cluster, allClusters, selectedId, onSelect, depth = 0 }: Fo
         ) : (
           <span className="w-4 flex-shrink-0" />
         )}
-        <span className="flex-shrink-0">{EMOJIS[cluster.emojiId]}</span>
+        <span className="flex-shrink-0">{getEmoji(cluster.emojiId)}</span>
         <span className="truncate flex-1">{cluster.name}</span>
         <span className="text-[10px] text-muted-foreground/50 flex-shrink-0">{cluster.fragments.length}</span>
       </div>
@@ -89,14 +89,14 @@ export default function SaveFragmentModal({ open, onClose, text, sourceMessage, 
     }
   }, [open]);
 
-  const rootClusters = clusters.filter(c => !c.parentId);
+  const rootClusters = clusters.filter(c => !c.parentId && !c.isSystem);
 
   const handleSave = () => {
     if (!title.trim()) { toast.error('Введите название фрагмента'); return; }
 
     let clusterId = selectedCluster;
     if (showNewCluster && newClusterName.trim()) {
-      clusterId = createCluster(newClusterName.trim(), newClusterIcon, '#8b5cf6');
+      clusterId = createCluster(newClusterName.trim(), newClusterIcon, '#8b5cf6', null, selectedProject);
     }
 
     saveFragment({
@@ -157,7 +157,7 @@ export default function SaveFragmentModal({ open, onClose, text, sourceMessage, 
               >
                 <span>📭</span> Без проекта
               </button>
-              {projects.map(p => (
+              {projects.filter(p => !p.isSystem).map(p => (
                 <button
                   key={p.id}
                   onClick={() => setSelectedProject(p.id)}
@@ -165,7 +165,7 @@ export default function SaveFragmentModal({ open, onClose, text, sourceMessage, 
                     selectedProject === p.id ? 'bg-primary/15 border border-primary/30 text-foreground' : 'bg-secondary/30 border border-transparent hover:bg-secondary/60 text-muted-foreground'
                   }`}
                 >
-                  <span>{EMOJIS[p.emojiId]}</span> {p.name}
+                  <span>{getEmoji(p.emojiId)}</span> {p.name}
                 </button>
               ))}
             </div>

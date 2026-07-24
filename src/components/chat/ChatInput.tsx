@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, ChevronDown, Paperclip, Mic, MicOff, X, FileText, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AI_MODELS } from '@/lib/mockData';
+import { AI_MODELS } from '@/shared/lib/mockData';
 import AiModelBadge from './AiModelBadge';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,

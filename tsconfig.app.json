@@ -1,5 +1,5 @@
 {
-  "extends": "@tsconfig/vite-react/tsconfig.json",
+  "extends": "./tsconfig.json",
   "include": ["src"],
   "compilerOptions": {
     "composite": true,

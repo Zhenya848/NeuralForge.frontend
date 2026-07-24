@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, Plus, Settings2, Layers, CircleDot } from 'lucide-react';
-import { useStore } from '@/lib/store';
+import { useStore } from '@/shared/lib/store';
 import { getEmoji } from '@/entities/shared/Constants';
 import ProjectsModal from '@/components/layout/ProjectsModal';
 import CreateProjectModal from '@/components/layout/CreateProjectModal';
@@ -40,8 +40,8 @@ export default function ProjectSwitcher() {
           <DropdownMenuItem className="gap-2 text-xs" onClick={() => setActiveProject('none')}>
             <CircleDot className="w-3.5 h-3.5" /> Без проекта
           </DropdownMenuItem>
-          {projects.length > 0 && <DropdownMenuSeparator />}
-          {projects.map(p => (
+          {projects.filter(p => !p.isSystem).length > 0 && <DropdownMenuSeparator />}
+          {projects.filter(p => !p.isSystem).map(p => (
             <DropdownMenuItem key={p.id} className="gap-2 text-xs" onClick={() => setActiveProject(p.id)}>
               <span>{getEmoji(p.emojiId)}</span> {p.name}
             </DropdownMenuItem>
