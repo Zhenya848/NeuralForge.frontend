@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '@/shared/lib/store';
 import EnergyBar from '@/components/chat/EnergyBar';
-import { getEmoji, SYSTEM_CHAT_FOLDER_ID, SYSTEM_PROJECT_ID } from '@/entities/shared/Constants';
+import { getEmoji, getFolderIcon, SYSTEM_CHAT_FOLDER_ID, SYSTEM_PROJECT_ID } from '@/entities/shared/Constants';
 import AiModelBadge from '@/components/chat/AiModelBadge';
 import FolderContextMenu from '@/components/layout/FolderContextMenu';
 import FolderIconModal from '@/components/layout/FolderIconModal';
@@ -17,6 +17,13 @@ import FolderSelectorModal from '@/components/chat/FolderSelectorModal';
 import type { Chat } from '@/entities/chats/Chat';
 import type { Folder } from '@/entities/folders/Folder';
 import type { ChatFolder } from '@/entities/folders/ChatFolder';
+import { useChangeProjectsMutation, useCreateProjectMutation, useGetWithChatsQuery } from '@/features/projects/api';
+import { useCreateChatMutation, useDeleteChatMutation, useUpdateChatMutation } from '@/features/chats/api';
+import type { UpdateProjectDto } from '@/features/projects/models/UpdateProjectDto';
+import { useCreateChatFolderMutation, useDeleteChatFolderMutation, useUpdateChatFolderMutation } from '@/features/chatFolders/api';
+import CreateFolderModal from './CreateFolderModal';
+import { toast } from 'sonner';
+import type { Project } from '@/entities/projects/Project';
 
 interface ChatItemProps {
   chat: Chat;
@@ -32,7 +39,7 @@ interface ChatItemProps {
 interface FolderHandlers {
   onChatClick(chatId: string): void;
   onNewChat(folderId?: string | null): void;
-  onNewFolder(parentId?: string | null): void;
+  onNewFolder(parentId: string): void;
   onRenameFolder(folder: Folder): void;
   onDeleteFolder(folder: Folder): void;
   onRenameChat(chat: Chat): void;
@@ -43,9 +50,8 @@ interface FolderHandlers {
 }
 
 interface FolderNodeProps {
-  folder: Folder;
-  allFolders: Folder[];
-  chats: Chat[];
+  folder: ChatFolder;
+  allFolders: ChatFolder[];
   activeChatId: string | null;
   handlers: FolderHandlers;
   depth?: number;
@@ -109,12 +115,12 @@ function ChatItem({ chat, isActive, onClick, onDelete, onRename, onAssignProject
 }
 
 // ─── FolderNode ─────────────────────────────────────────────────────────────
-function FolderNode({ folder, allFolders, chats, activeChatId, handlers, depth = 0 }: FolderNodeProps) {
+function FolderNode({ folder, allFolders, activeChatId, handlers, depth = 0 }: FolderNodeProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [menuPos, setMenuPos] = useState<MenuPos | null>(null);
 
   const children = allFolders.filter(f => f.parentId === folder.id);
-  const folderChats = chats.filter(c => c.folderId === folder.id);
+  const folderChats = folder.chats;
 
   const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -134,7 +140,7 @@ function FolderNode({ folder, allFolders, chats, activeChatId, handlers, depth =
             ? <ChevronRight className="w-3 h-3 text-muted-foreground/50 flex-shrink-0" />
             : <ChevronDown className="w-3 h-3 text-muted-foreground/50 flex-shrink-0" />
           }
-          <span className="text-sm">{getEmoji(folder.emojiId)}</span>
+          <span className="text-sm">{getFolderIcon(folder.emojiId)}</span>
           <span className="text-[11px] font-semibold text-muted-foreground truncate flex-1">{folder.name}</span>
           <span className="text-[9px] text-muted-foreground/40 ml-1 flex-shrink-0">
             {folderChats.length + children.length}
@@ -148,7 +154,6 @@ function FolderNode({ folder, allFolders, chats, activeChatId, handlers, depth =
                 key={child.id}
                 folder={child}
                 allFolders={allFolders}
-                chats={chats}
                 activeChatId={activeChatId}
                 handlers={handlers}
                 depth={depth + 1}
@@ -193,35 +198,81 @@ function FolderNode({ folder, allFolders, chats, activeChatId, handlers, depth =
 //target: Chat | Folder, type: "chat" | "folder"
 
 type AssignModalType = {
-  type: "chat" | "folder";
-  id: string;
+  target: Chat | ChatFolder;
   projectId: string;
+}
+
+type FolderModalType = {
+  parentId?: string
 }
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 export default function Sidebar({ onOpenSearch, mobileOpen, onCloseMobile }: SidebarProps) {
   const {
-    chats, folders, activeChatId, activeProjectId,
-    setActiveChat, createChat, createFolder,
-    renameFolder, deleteFolder, deleteChat, renameChat,
-    updateFolderIcon, setChatFolder,
+    activeChatId, 
+    setActiveChat
   } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
 
+  const PAGE_SIZE = 20;
+  const [activeProjectId, setActiveProjectId] = useState<string>("all");
+
+  const { data: projectsData } = useGetWithChatsQuery({ page: 1, pageSize: PAGE_SIZE });
+  const [createNewChat] = useCreateChatMutation();
+  const [createProject] = useCreateProjectMutation();
+  const [updateProjects] = useChangeProjectsMutation();
+  const [createChatFolder] = useCreateChatFolderMutation();
+  const [deleteChatFolder] = useDeleteChatFolderMutation();
+  const [deleteChat] = useDeleteChatMutation();
+  const [updateChat] = useUpdateChatMutation();
+  const [updateFolder] = useUpdateChatFolderMutation();
+
+  const projects = projectsData?.result?.items ?? [];
+  const folders = projects.flatMap(f => f.chatFolders);
+
+  const systemProject = projects.find(p => p.isSystem)!;
+
   const [iconModal, setIconModal] = useState<Folder | null>(null); // folder to edit icon
   const [bgMenuPos, setBgMenuPos] = useState<MenuPos | null>(null); // right-click on blank area
   const [assignModal, setAssignModal] = useState<AssignModalType | null>(null); // { type, id, projectId }
-  const [moveChatId, setMoveChatId] = useState<string | null>(null); // chat to move between folders
+  const [moveChat, setMoveChat] = useState<Chat | null>(null); // chat to move between folders
+  const [folderModal, setFolderModal] = useState<FolderModalType | null>(null);
 
   // Project assigned to newly created chats/folders
-  const newProjectId = (activeProjectId !== 'all' && activeProjectId !== 'none') ? activeProjectId : null;
+  const newProjectId = (activeProjectId !== 'all' && activeProjectId !== 'none') ? activeProjectId : undefined;
 
-  const handleNewChat = (folderId = null) => {
-    const id = createChat('Новый чат', 'chatgpt', [], folderId);
-    navigate(`/chat/${id}`);
-    onCloseMobile?.();
+  const handleNewProject = async (name: string, description: string, emojiId: number, colorId: number) => {
+    try {
+      await createProject({name: name.trim(), description: description.trim(), emojiId: emojiId, colorId: colorId}).unwrap();
+
+      toast.success('Проект создан');
+    }
+    catch (error: unknown) {
+      console.log(error);
+    }
+  }
+
+  const handleNewChat = async (folderId?: string) => {
+    try {
+      await createNewChat({name: 'Новый чат', emojiId: 0, projectId: newProjectId, folderId: folderId}).unwrap();
+
+      //navigate(`/chat/${response.result}`);
+      onCloseMobile?.();
+    }
+    catch (error: unknown) {
+      console.log(error);
+    }
   };
+
+  const handleUpdateProjects = async (projects: UpdateProjectDto[]) => {
+    try {
+      await updateProjects({projects: projects}).unwrap();
+    }
+    catch (error: unknown) {
+      console.log(error);
+    }
+  }
 
   const handleChatClick = (chatId: string) => {
     setActiveChat(chatId);
@@ -229,54 +280,122 @@ export default function Sidebar({ onOpenSearch, mobileOpen, onCloseMobile }: Sid
     onCloseMobile?.();
   };
 
-  const handleNewFolder = (parentId = null) => {
-    const name = prompt('Название папки:');
-    if (name?.trim()) createFolder(name.trim(), parentId, undefined, newProjectId);
-  };
+  const handleNewFolder = async (name: string, emojiId: number, projectId?: string, parentId?: string) => {
+    try {
+      await createChatFolder({name: name, emojiId: emojiId, projectId: projectId, parentId: parentId}).unwrap();
 
-  const handleRenameFolder = (folder: Folder) => {
-    const name = prompt('Новое название:', folder.name);
-    if (name?.trim()) renameFolder(folder.id, name.trim());
-  };
-
-  const handleDeleteFolder = (folder: Folder) => {
-    if (window.confirm(`Удалить «${folder.name}»? Вложенные папки и чаты перейдут на уровень выше.`)) {
-      deleteFolder(folder.id);
+      toast.success('Папка создана');
+    }
+    catch (error: unknown) {
+      console.log(error);
     }
   };
 
-  const handleRenameChat = (chat: Chat) => {
-    const name = prompt('Новое название:', chat.name);
-    if (name?.trim()) renameChat(chat.id, name.trim());
+  const handleRenameFolder = async (folder: Folder) => {
+    const name = prompt('Новое название:', folder.name);
+
+    try {
+      if (name?.trim()) 
+        await updateFolder({id: folder.id, name: name.trim(), emojiId: folder.emojiId}).unwrap();
+    }
+    catch(error: unknown) {
+      console.log(error);
+    }
   };
 
-  const handleDeleteChat = (chat: Chat) => {
-    if (window.confirm(`Удалить чат «${chat.name}»?`)) {
-      deleteChat(chat.id);
+  const handleChangeFolderIcon = async (folder: Folder, iconId: number) => {
+    try {
+      if (folder.emojiId !== iconId) 
+        await updateFolder({id: folder.id, name: folder.name, emojiId: iconId}).unwrap();
+    }
+    catch(error: unknown) {
+      console.log(error);
+    }
+  }
+
+  const handleDeleteFolder = async (folder: Folder) => {
+    if (window.confirm(`Удалить «${folder.name}»? Вложенные папки и чаты перейдут на уровень выше.`) == false) 
+      return;
+
+    try {
+      await deleteChatFolder({id: folder.id}).unwrap();
+    }
+    catch (error: unknown) {
+      console.log(error);
+    }
+  };
+
+  const handleRenameChat = async (chat: Chat) => {
+    const name = prompt('Новое название:', chat.name);
+
+    try {
+      if (name?.trim())
+        await updateChat({id: chat.id, name: name.trim()}).unwrap();
+    }
+    catch (error: unknown) {
+      console.log(error);
+    }
+  };
+
+  const handleDeleteChat = async (chat: Chat) => {
+    if (window.confirm(`Удалить чат «${chat.name}»?`) == false)
+      return;
+
+    try {
+      await deleteChat({id: chat.id}).unwrap();
+    
       if (activeChatId === chat.id) navigate('/');
     }
+    catch (error: unknown) {
+      console.log(error);
+    }
   };
 
-  const handleAssignProject = (target: Chat | ChatFolder, type: "chat" | "folder") => {
+  const handleMoveFolder = async (chat: Chat, folderId: string) => {
+    try {
+      await updateChat({id: chat.id, name: chat.name, projectId: undefined, folderId: folderId}).unwrap();
+    }
+    catch (error: unknown) {
+      console.log(error);
+    }
+  }
+
+  function isChat(target: Chat | ChatFolder): target is Chat {
+    return "projectId" in target === false;
+  }
+
+  const handleAssignProject = (target: Chat | ChatFolder) => {
     const projectId =
-    type === "chat"
+      isChat(target)
       ? folders.find(f => f.id === (target as Chat).folderId)!.projectId
       : (target as ChatFolder).projectId;
 
-    setAssignModal({ type, id: target.id, projectId: projectId });
+    setAssignModal({ target: target, projectId: projectId });
   };
+
+  const handleAssign = async (target: Chat | ChatFolder, projectId: string | null) => {
+    try {
+      if (isChat(target))
+        await updateChat({ id: target.id, name: target.name, projectId: projectId ? projectId : systemProject.id, folderId: undefined });
+      else
+        await updateFolder({ id: target.id, name: target.name, emojiId: target.emojiId, projectId: projectId ? projectId : systemProject.id, parentId: undefined });
+    }
+    catch (error: unknown) {
+      console.log(error);
+    }
+  }
 
   const handlers = {
     onChatClick: handleChatClick,
     onNewChat: handleNewChat,
-    onNewFolder: handleNewFolder,
+    onNewFolder: (parentId: string) => setFolderModal({parentId}),
     onRenameFolder: handleRenameFolder,
     onDeleteFolder: handleDeleteFolder,
     onRenameChat: handleRenameChat,
     onDeleteChat: handleDeleteChat,
     onChangeIcon: (folder: Folder) => setIconModal(folder),
     onAssignProject: handleAssignProject,
-    onMoveFolder: (chat: Chat) => setMoveChatId(chat.id),
+    onMoveFolder: (chat: Chat) => setMoveChat(chat),
   };
 
   const handleBgContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -289,14 +408,15 @@ export default function Sidebar({ onOpenSearch, mobileOpen, onCloseMobile }: Sid
   // Filter tree by active project
   const projectFilter = (item: ChatFolder) => {
     if (activeProjectId === 'all') return true;
-    if (activeProjectId === 'none') return item.projectId === SYSTEM_PROJECT_ID;
+    if (activeProjectId === 'none') return item.projectId === systemProject?.id;
     return item.projectId === activeProjectId;
   };
 
-  const rootFolders = folders.filter(f => f.parentId === null && !f.isSystem).filter(projectFilter);
-  const unfoldered = (activeProjectId === 'all' || activeProjectId === 'none')
-    ? chats.filter(c => c.folderId === SYSTEM_CHAT_FOLDER_ID)
-    : [];
+  const filteredFolders = folders.filter(projectFilter);
+
+  const visibleFolders = filteredFolders.filter(f => f.parentId === null && !f.isSystem);
+
+  const unfoldered = filteredFolders.filter(f => f.isSystem)?.flatMap(c => c.chats) ?? [];
 
   const navItems = [
     { path: '/', icon: LayoutDashboard, label: 'Главная' },
@@ -321,7 +441,8 @@ export default function Sidebar({ onOpenSearch, mobileOpen, onCloseMobile }: Sid
 
       {/* Project switcher */}
       <div className="px-3 mb-2 flex-shrink-0">
-        <ProjectSwitcher />
+        <ProjectSwitcher projects={projects.filter(p => !p.isSystem)} activeProjectId={activeProjectId} onChange={setActiveProjectId} 
+          onCreate={handleNewProject} onUpdate={handleUpdateProjects} />
       </div>
 
       {/* Search */}
@@ -358,7 +479,7 @@ export default function Sidebar({ onOpenSearch, mobileOpen, onCloseMobile }: Sid
       {/* New chat button */}
       <div className="px-3 mb-3 flex-shrink-0">
         <button
-          onClick={() => handleNewChat()}
+          onClick={async () => await handleNewChat()}
           className="w-full flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl h-9 text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" /> Новый чат
@@ -370,12 +491,11 @@ export default function Sidebar({ onOpenSearch, mobileOpen, onCloseMobile }: Sid
         className="flex-1 overflow-y-auto px-3 pb-2 min-h-0"
         onContextMenu={handleBgContextMenu}
       >
-        {rootFolders.map(folder => (
+        {visibleFolders.map(folder => (
           <FolderNode
             key={folder.id}
             folder={folder}
             allFolders={folders}
-            chats={chats}
             activeChatId={activeChatId}
             handlers={handlers}
           />
@@ -394,8 +514,8 @@ export default function Sidebar({ onOpenSearch, mobileOpen, onCloseMobile }: Sid
                 onClick={() => handleChatClick(chat.id)}
                 onRename={handleRenameChat}
                 onDelete={handleDeleteChat}
-                onAssignProject={(c) => handleAssignProject(c, 'chat')}
-                onMoveFolder={(c) => setMoveChatId(c.id)}
+                onAssignProject={(c) => handleAssignProject(c)}
+                onMoveFolder={(c) => setMoveChat(c)}
                 depth={0}
               />
             ))}
@@ -403,7 +523,7 @@ export default function Sidebar({ onOpenSearch, mobileOpen, onCloseMobile }: Sid
         )}
 
         {/* Empty state hint */}
-        {rootFolders.length === 0 && (
+        {visibleFolders.length === 0 && (
           <p className="text-[11px] text-muted-foreground/40 text-center mt-6 px-2">
             {activeProjectId === 'all' || activeProjectId === 'none'
               ? 'Правый клик чтобы создать папку или чат'
@@ -450,7 +570,7 @@ export default function Sidebar({ onOpenSearch, mobileOpen, onCloseMobile }: Sid
           onClose={() => setBgMenuPos(null)}
           items={[
             { label: 'Новый чат', icon: MessageSquare, action: () => { setBgMenuPos(null); handleNewChat(); } },
-            { label: 'Новая папка', icon: FolderOpen, action: () => { setBgMenuPos(null); handleNewFolder(); } },
+            { label: 'Новая папка', icon: FolderOpen, action: () => { setBgMenuPos(null); setFolderModal({ parentId: undefined }); } },
           ]}
         />
       )}
@@ -459,7 +579,7 @@ export default function Sidebar({ onOpenSearch, mobileOpen, onCloseMobile }: Sid
       {iconModal && (
         <FolderIconModal
           folder={iconModal}
-          onSave={(icon) => { updateFolderIcon(iconModal.id, icon); setIconModal(null); }}
+          onSave={async (iconId) => { await handleChangeFolderIcon(iconModal, iconId); setIconModal(null); }}
           onClose={() => setIconModal(null)}
         />
       )}
@@ -467,20 +587,33 @@ export default function Sidebar({ onOpenSearch, mobileOpen, onCloseMobile }: Sid
       {/* Assign to project modal */}
       {assignModal && (
         <AssignProjectModal
+          projects={projects}
           open
           onClose={() => setAssignModal(null)}
-          targetType={assignModal.type}
-          targetId={assignModal.id}
+          target={assignModal.target}
           currentProjectId={assignModal.projectId}
+          onAssign={handleAssign}
         />
       )}
 
       {/* Move chat to folder modal */}
-      {moveChatId && (
+      {moveChat && (
         <FolderSelectorModal
+          folders={folders}
+          chat={moveChat}
           open
-          chatId={moveChatId}
-          onClose={() => setMoveChatId(null)}
+          onClose={() => setMoveChat(null)}
+          onSelect={handleMoveFolder}
+        />
+      )}
+
+      {folderModal && (
+        <CreateFolderModal
+          open
+          onCreate={handleNewFolder}
+          parentId={folderModal.parentId}
+          projectId={newProjectId}
+          onClose={() => setFolderModal(null)}
         />
       )}
     </>

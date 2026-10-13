@@ -2,30 +2,42 @@ import { baseApi, FEED_SERVICE_PROJECTS_API_URL } from "@/app/baseApi";
 import type { Project } from "@/entities/projects/Project";
 import type { Envelope } from "@/shared/api/Envelope";
 import type { PageList } from "@/shared/api/PageList";
+import type { UpdateProjectDto } from "./models/UpdateProjectDto";
 
-export const collationApi = baseApi.injectEndpoints({
+export const projectApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
-        create: builder.mutation<Envelope<string>, { name: string, description: string, emojiId: number, colorId: number }>({
+        createProject: builder.mutation<Envelope<string>, { name: string, description: string, emojiId: number, colorId: number }>({
             query: ({ name, description, emojiId, colorId }) => {
                 return {
-                    url: FEED_SERVICE_PROJECTS_API_URL + `create`,
+                    url: FEED_SERVICE_PROJECTS_API_URL,
                     method: 'POST',
                     body: { name, description, emojiId, colorId },
                 };
-            }
+            },
+            invalidatesTags: ["Chats"],
         }),
-        getWithChats: builder.query<Envelope<PageList<Project>>, { page: number, pageSize: number, projectNameFilter: string }>({
-            query: ({ page, pageSize, projectNameFilter }) => {
+        changeProjects: builder.mutation<Envelope<null>, { projects: UpdateProjectDto[] }>({
+            query: ({ projects }) => {
                 return {
-                    url: FEED_SERVICE_PROJECTS_API_URL + `projects/chats/get?Page=${page}&PageSize=${pageSize}&ProjectNameFilter=${projectNameFilter}`,
-                    method: 'GET'
+                    url: FEED_SERVICE_PROJECTS_API_URL,
+                    method: 'PUT',
+                    body: { projects },
                 };
             }
         }),
-        getWithFragments: builder.query<Envelope<PageList<Project>>, { page: number, pageSize: number, projectNameFilter: string, nameFilter: string }>({
-            query: ({ page, pageSize, projectNameFilter, nameFilter }) => {
+        getWithChats: builder.query<Envelope<PageList<Project>>, { page: number, pageSize: number }>({
+            query: ({ page, pageSize }) => {
                 return {
-                    url: FEED_SERVICE_PROJECTS_API_URL + `projects/fragments/get?Page=${page}&PageSize=${pageSize}&ProjectNameFilter=${projectNameFilter}`,
+                    url: FEED_SERVICE_PROJECTS_API_URL + `chats?Page=${page}&PageSize=${pageSize}`,
+                    method: 'GET'
+                };
+            },
+            providesTags: ["Chats"],
+        }),
+        getWithFragments: builder.query<Envelope<PageList<Project>>, { page: number, pageSize: number, nameFilter?: string }>({
+            query: ({ page, pageSize, nameFilter }) => {
+                return {
+                    url: FEED_SERVICE_PROJECTS_API_URL + `fragments?Page=${page}&PageSize=${pageSize}&NameFilter=${nameFilter}`,
                     method: 'GET'
                 };
             }
@@ -34,6 +46,8 @@ export const collationApi = baseApi.injectEndpoints({
 });
 
 export const { 
-    useCreateMutation,
-    useGetQuery
- } = collationApi;
+    useCreateProjectMutation,
+    useChangeProjectsMutation,
+    useGetWithFragmentsQuery,
+    useGetWithChatsQuery
+ } = projectApi;

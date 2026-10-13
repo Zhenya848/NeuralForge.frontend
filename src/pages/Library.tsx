@@ -14,6 +14,7 @@ import LibraryFolder from '@/components/library/LibraryFolder';
 import type { Fragment } from '@/entities/fragments/Fragment';
 import type { FragmentFolder } from '@/entities/folders/FragmentFolder';
 import AiModelBadge from '@/components/chat/AiModelBadge';
+import { useGetWithFragmentsQuery } from '@/features/projects/api';
 
 type MoveFragType = {
   frag: Fragment;
@@ -32,16 +33,24 @@ export default function Library() {
   const [moveFrag, setMoveFrag] = useState<MoveFragType | null>(null);
   const [showNewFolderForm, setShowNewFolderForm] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
-  const [newFolderIcon, setNewFolderIcon] = useState('📁');
+  const [newFolderIconId, setNewFolderIconId] = useState(0);
+
+  const PAGE_SIZE = 20;
+  const { data: projectsData } = useGetWithFragmentsQuery({ page: 1, pageSize: PAGE_SIZE, nameFilter: search });
+
+  const folders = projectsData?.result?.items.flatMap(f => f.fragmentFolders) ?? [];
+  const fragments = folders?.flatMap(f => f.fragments) ?? [];
+
+  const systemProject = projects.find(p => p.isSystem)!;
 
   const handleNewFolder = () => {
     if (!newFolderName.trim()) { toast.error('Введите название'); return; }
     const folderProjectId = projectFilter === 'all' || projectFilter === 'none' ? null : projectFilter;
-    createCluster(newFolderName.trim(), newFolderIcon, '#8b5cf6', null, folderProjectId);
+    createCluster(newFolderName.trim(), getEmoji(newFolderIconId), '#8b5cf6', null, folderProjectId);
     toast.success('Папка создана');
     setShowNewFolderForm(false);
     setNewFolderName('');
-    setNewFolderIcon('📁');
+    setNewFolderIconId(0);
   };
 
   const goToSource = (fragment: Fragment) => {
@@ -66,26 +75,16 @@ export default function Library() {
     setEditingFragId(null);
   };
 
-  // Root-level folders (no parent), filtered by project
-  const q = search.toLowerCase().trim();
   const projectMatch = (c: FragmentFolder) =>
     projectFilter === 'all' ? true
-    : projectFilter === 'none' ? c.projectId === SYSTEM_PROJECT_ID
+    : projectFilter === 'none' ? c.projectId  === systemProject.id
     : c.projectId === projectFilter;
 
-  const rootFolders = clusters.filter(c => !c.parentId && !c.isSystem && projectMatch(c));
-  const systemCluster: FragmentFolder = clusters.find(c => c.id === SYSTEM_FRAGMENT_FOLDER_ID)!;
-  const uncategorizedFrags = (projectFilter === 'all' || projectFilter === 'none')
-    ? (systemCluster?.fragments ?? [])
-    : [];
+  const filteredFolders = folders.filter(projectMatch);
 
-  // Filter folders by search (simple — show all if no query)
-  const visibleRoots = q
-    ? clusters.filter(c => !c.parentId && projectMatch(c) && (
-        c.name.toLowerCase().includes(q) ||
-        c.fragments.some(f => f.name.toLowerCase().includes(q) || f.content.toLowerCase().includes(q))
-      ))
-    : rootFolders;
+  const visibleRoots = filteredFolders.filter(c => !c.parentId && !c.isSystem);
+
+  const uncategorizedFrags = filteredFolders.filter(f => f.isSystem).flatMap(f => f.fragments);
 
   const totalFragments = clusters.reduce((s, c) => s + c.fragments.length, 0);
 
@@ -108,7 +107,7 @@ export default function Library() {
               Библиотека
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {rootFolders.length} папок · {totalFragments} фрагментов
+              {visibleRoots.length} папок · {totalFragments} фрагментов
             </p>
           </div>
           <Button onClick={() => setShowNewFolderForm(v => !v)} className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 gap-2 self-start">
@@ -127,7 +126,7 @@ export default function Library() {
             >
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Новая папка</p>
               <div className="flex items-center gap-2 mb-3">
-                <EmojiPicker value={newFolderIcon} onChange={setNewFolderIcon} />
+                <EmojiPicker value={getEmoji(newFolderIconId)} onChange={setNewFolderIconId} />
                 <Input
                   value={newFolderName}
                   onChange={e => setNewFolderName(e.target.value)}
@@ -220,7 +219,7 @@ export default function Library() {
             ))
           )}
 
-          {uncategorizedFrags.length > 0 && !q && (
+          {uncategorizedFrags.length > 0 && (
             <div className="mt-3 pt-3 border-t border-border/30">
               <div className="px-2 py-1 mb-1">
                 <span className="text-[10px] font-semibold text-muted-foreground/40 uppercase tracking-wider">📭 Без категории</span>
@@ -240,7 +239,7 @@ export default function Library() {
                       </div>
                       <div className="hidden sm:flex items-center gap-0.5 opacity-0 group-hover/frag:opacity-100 transition-opacity flex-shrink-0">
                         <button onClick={() => setViewFrag(frag)} className="p-1 rounded hover:bg-secondary"><Eye className="w-3 h-3 text-muted-foreground" /></button>
-                        <button onClick={() => setMoveFrag({ frag, clusterId: systemCluster.id })} className="p-1 rounded hover:bg-secondary"><ArrowRight className="w-3 h-3 text-accent" /></button>
+                        <button onClick={() => setMoveFrag({ frag, clusterId: folders.find(f => f.isSystem)!.id })} className="p-1 rounded hover:bg-secondary"><ArrowRight className="w-3 h-3 text-accent" /></button>
                         <button onClick={() => goToSource(frag)} className="p-1 rounded hover:bg-secondary"><ExternalLink className="w-3 h-3 text-primary" /></button>
                       </div>
                     </div>

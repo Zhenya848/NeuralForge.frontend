@@ -7,6 +7,14 @@ export const EMOJIS = [
   '🏆', '🎪', '🌈', '🦋', '🐉', '🦄', '🌸', '🍀', '🔮', '🎲', '🗺️', '🧩',
 ] as const;
 
+export const FOLDER_ICONS = [
+  '📁','📂','🗂️','💼','📚','📖','📝','🗒️','🗃️','🗄️',
+  '💻','🖥️','⚙️','🔧','🔨','🛠️','🚀','⚡','🔥','✨',
+  '🎨','🎯','🏗️','🧩','🔬','🧪','📐','📊','📈','📉',
+  '🤖','🧠','💡','🔑','🏆','⭐','❤️','💜','💙','💚',
+  '🌐','🌍','🌙','☀️','🎵','🎬','📷','🎮','💰','🏠',
+];
+
 export const COLORS = [
   '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b',
   '#ef4444', '#ec4899', '#14b8a6', '#6366f1',
@@ -50,4 +58,5 @@ export function getMessageRole(msg: Message): 'user' | 'assistant' {
 }
 
 export const getEmoji = (emojiId: number): string => EMOJIS[emojiId] ?? EMOJIS[0];
+export const getFolderIcon = (iconId: number): string => FOLDER_ICONS[iconId] ?? FOLDER_ICONS[0]
 export const getColor = (colorId: number): string => COLORS[colorId] ?? COLORS[0];

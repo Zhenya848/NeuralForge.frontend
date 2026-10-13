@@ -5,33 +5,31 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Check, X } from 'lucide-react';
 import EmojiPicker from '@/components/ui/EmojiPicker';
-import { useStore } from '@/shared/lib/store';
 import { toast } from 'sonner';
+import { EMOJIS } from '@/entities/shared/Constants';
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#6366f1'];
 
 interface CreateProjectModalProps {
   open: boolean;
   onClose: () => void;
-  onCreated?: () => void;
+  onCreate: (name: string, description: string, emojiId: number, colorId: number) => Promise<void>;
 }
 
-export default function CreateProjectModal({ open, onClose, onCreated }: CreateProjectModalProps) {
-  const { createProject, setActiveProject } = useStore();
+export default function CreateProjectModal({ open, onClose, onCreate }: CreateProjectModalProps) {
   const [name, setName] = useState('');
-  const [icon, setIcon] = useState('🚀');
-  const [color, setColor] = useState(COLORS[0]);
+  const [iconId, setIconId] = useState(0);
+  const [colorId, setColorId] = useState(0);
   const [instructions, setInstructions] = useState('');
 
-  const reset = () => { setName(''); setIcon('🚀'); setColor(COLORS[0]); setInstructions(''); };
+  const reset = () => { setName(''); setIconId(0); setColorId(0); setInstructions(''); };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!name.trim()) { toast.error('Введите название'); return; }
-    const id = createProject(name.trim(), icon, color, instructions.trim());
-    setActiveProject(id);
-    toast.success('Проект создан');
+
+    await onCreate(name.trim(), instructions.trim(), iconId, colorId);
+    
     reset();
-    onCreated?.();
     onClose();
   };
 
@@ -45,16 +43,16 @@ export default function CreateProjectModal({ open, onClose, onCreated }: CreateP
         </DialogHeader>
         <div className="space-y-4 mt-2">
           <div className="flex items-center gap-2">
-            <EmojiPicker value={icon} onChange={setIcon} />
+            <EmojiPicker value={EMOJIS[iconId]} onChange={setIconId} />
             <Input value={name} onChange={e => setName(e.target.value)} placeholder="Название проекта..."
               className="bg-secondary/50 border-border/50" autoFocus
               onKeyDown={e => { if (e.key === 'Enter') handleCreate(); }} />
           </div>
 
           <div className="flex items-center gap-1.5 flex-wrap">
-            {COLORS.map(c => (
-              <button key={c} onClick={() => setColor(c)}
-                className={`w-6 h-6 rounded-full transition-transform ${color === c ? 'ring-2 ring-offset-2 ring-offset-card scale-110' : 'hover:scale-105'}`}
+            {COLORS.map((c, i) => (
+              <button key={c} onClick={() => setColorId(i)}
+                className={`w-6 h-6 rounded-full transition-transform ${colorId === i ? 'ring-2 ring-offset-2 ring-offset-card scale-110' : 'hover:scale-105'}`}
                 style={{ backgroundColor: c }} />
             ))}
           </div>

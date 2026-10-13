@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,40 +8,102 @@ import EmojiPicker from '@/components/ui/EmojiPicker';
 import { getEmoji, getColor } from '@/entities/shared/Constants';
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#6366f1'];
-import { useStore } from '@/shared/lib/store';
 import { toast } from 'sonner';
 import type { Project } from '@/entities/projects/Project';
+import type { UpdateProjectDto } from '@/features/projects/models/UpdateProjectDto';
 
 interface ProjectsModalProps {
+  initProjects: Project[];
   open: boolean;
   onClose: () => void;
+  onUpdate: (projects: UpdateProjectDto[]) => Promise<void>;
 }
 
-export default function ProjectsModal({ open, onClose }: ProjectsModalProps) {
-  const { projects, renameProject, deleteProject, updateProjectInstructions, updateProjectIcon, updateProjectColor } = useStore();
+export default function ProjectsModal({ initProjects, open, onClose, onUpdate }: ProjectsModalProps) {
   const [editingId, setEditingId] = useState<string | null>('null');
   const [editVal, setEditVal] = useState('');
   const [editInstrId, setEditInstrId] = useState<string | null>(null);
   const [instrVal, setInstrVal] = useState('');
 
-  const startEdit = (p: Project) => { setEditingId(p.id); setEditVal(p.name); };
-  const saveEdit = (id: string) => {
-    if (editVal.trim()) { renameProject(id, editVal.trim()); toast.success('Переименовано'); }
+  const [projects, setProjects] = useState<Project[]>([]);
+  const initialProjects = useRef<Project[]>([]);
+
+  useEffect(() => {
+    if (!open) 
+      return;
+
+    setProjects(initProjects);
+    initialProjects.current = structuredClone(initProjects);
+  }, [open]);
+
+  const [deletedProjects, setDeletedProjects] = useState<string[]>([]);
+
+  const handleUpdateProject = <K extends keyof UpdateProjectDto>(projectId: string, field: K, value: UpdateProjectDto[K]) => {
+      setProjects(prev =>
+        prev.map(project =>
+          project.id === projectId
+            ? { ...project, [field]: value }
+            : project
+        )
+      );
+  };
+
+  const saveChanges = async () => {
+    try {
+      const changedProjects: UpdateProjectDto[] = projects
+      .filter(project => {
+        const original = initialProjects.current.find(p => p.id === project.id)!;
+
+        return (
+          project.name !== original.name ||
+          project.description !== original.description ||
+          project.emojiId !== original.emojiId ||
+          project.colorId !== original.colorId
+        );
+      })
+      .map(project => ({
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        emojiId: project.emojiId,
+        colorId: project.colorId,
+      }));
+
+      await onUpdate(changedProjects);
+
+      onClose();
+    }
+    catch (error: unknown) {
+      console.log(error);
+    }
+  }
+
+  const startEdit = (p: UpdateProjectDto) => { setEditingId(p.id); setEditVal(p.name); };
+  const saveEdit = (projectId: string) => {
+    if (editVal.trim()) {
+      handleUpdateProject(projectId, "name", editVal.trim());
+      toast.success('Переименовано');
+    }
+
     setEditingId(null);
   };
 
-  const startEditInstr = (p: Project) => { setEditInstrId(p.id); setInstrVal(p.description || ''); };
-  const saveInstr = (id: string) => {
-    updateProjectInstructions(id, instrVal.trim());
+  const startEditInstr = (p: UpdateProjectDto) => { setEditInstrId(p.id); setInstrVal(p.description || ''); };
+  const saveInstr = (projectId: string) => {
+    handleUpdateProject(projectId, "description", instrVal.trim());
     toast.success('Инструкции обновлены');
     setEditInstrId(null);
   };
 
-  const handleDelete = (p: Project) => {
-    if (window.confirm(`Удалить проект «${p.name}»? Чаты, папки и фрагменты станут «без проекта».`)) {
-      deleteProject(p.id);
-      toast.success('Проект удалён');
-    }
+  const handleDelete = (p: UpdateProjectDto) => {
+    if (!window.confirm(`Удалить проект «${p.name}»? Чаты, папки и фрагменты станут «без проекта».`))
+        return;
+
+    setDeletedProjects(prev =>
+        prev.includes(p.id) ? prev : [...prev, p.id]
+    );
+
+    toast.success("Проект удалён");
   };
 
   return (
@@ -57,7 +119,7 @@ export default function ProjectsModal({ open, onClose }: ProjectsModalProps) {
           {projects.map(p => (
             <div key={p.id} className="px-3 py-2 rounded-lg hover:bg-secondary/40 space-y-2">
               <div className="flex items-center gap-2">
-                <EmojiPicker value={getEmoji(p.emojiId)} onChange={(emoji) => updateProjectIcon(p.id, emoji)} buttonClassName="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-secondary text-sm transition-colors flex-shrink-0" />
+                <EmojiPicker value={getEmoji(p.emojiId)} onChange={(emojiId) => handleUpdateProject(p.id, "emojiId", emojiId)} buttonClassName="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-secondary text-sm transition-colors flex-shrink-0" />
                 {editingId === p.id ? (
                   <>
                     <Input value={editVal} onChange={e => setEditVal(e.target.value)}
@@ -79,7 +141,7 @@ export default function ProjectsModal({ open, onClose }: ProjectsModalProps) {
                 <>
                 <div className="flex items-center gap-1.5 pl-6 flex-wrap mb-1">
                   {COLORS.map(c => (
-                    <button key={c} onClick={() => updateProjectColor(p.id, c)}
+                    <button key={c} onClick={() => handleUpdateProject(p.id, "colorId", COLORS.indexOf(c))}
                       className={`w-4 h-4 rounded-full transition-transform ${getColor(p.colorId) === c ? 'ring-2 ring-offset-1 ring-offset-card scale-110' : 'hover:scale-105'}`}
                       style={{ backgroundColor: c }} />
                   ))}
@@ -119,7 +181,7 @@ export default function ProjectsModal({ open, onClose }: ProjectsModalProps) {
           ))}
         </div>
         <div className="flex justify-end pt-2">
-          <Button variant="outline" size="sm" onClick={onClose}>Готово</Button>
+          <Button variant="outline" size="sm" onClick={saveChanges}>Готово</Button>
         </div>
       </DialogContent>
     </Dialog>

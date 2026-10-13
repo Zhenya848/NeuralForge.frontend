@@ -1,4 +1,4 @@
-import type { User } from "../entities/accounts/User";
+import type { User } from "@/entities/accounts/User";
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 export type AuthState = {

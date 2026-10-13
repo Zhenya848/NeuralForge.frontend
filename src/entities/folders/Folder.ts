@@ -4,5 +4,5 @@ export interface Folder {
   parentId: string | null;
   name: string;
   emojiId: number;
-  isSystem: boolean;
+  isSystem?: boolean;
 }

@@ -1,25 +1,23 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
-import { useStore } from '@/shared/lib/store';
 import { getEmoji } from '@/entities/shared/Constants';
-import { toast } from 'sonner';
+import type { ChatFolder } from '@/entities/folders/ChatFolder';
+import type { Chat } from '@/entities/chats/Chat';
+import type { Project } from '@/entities/projects/Project';
 
 interface AssignProjectModalProps {
+  projects: Project[];
   open: boolean;
   onClose: () => void;
-  targetType: 'chat' | 'folder';
-  targetId: string;
+  target: Chat | ChatFolder;
   currentProjectId: string | null;
+  onAssign: (target: Chat | ChatFolder, projectId: string | null) => Promise<void>;
 }
 
-export default function AssignProjectModal({ open, onClose, targetType, targetId, currentProjectId }: AssignProjectModalProps) {
-  const { projects, setChatProject, setFolderProject } = useStore();
-
-  const assign = (projectId: string | null) => {
-    if (targetType === 'chat') setChatProject(targetId, projectId);
-    else setFolderProject(targetId, projectId);
-    toast.success('Проект изменён');
+export default function AssignProjectModal({ projects, open, onClose, target, currentProjectId, onAssign }: AssignProjectModalProps) {
+  const assign = async (projectId: string | null) => {
+    await onAssign(target, projectId);
     onClose();
   };
 
@@ -31,7 +29,7 @@ export default function AssignProjectModal({ open, onClose, targetType, targetId
         </DialogHeader>
         <div className="space-y-1 mt-2 max-h-72 overflow-y-auto">
           <button
-            onClick={() => assign(null)}
+            onClick={async () => await assign(null)}
             className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${!currentProjectId ? 'bg-primary/15 border border-primary/30 text-foreground' : 'hover:bg-secondary/50 border border-transparent text-muted-foreground'}`}
           >
             <span>📭</span> Без проекта
@@ -40,7 +38,7 @@ export default function AssignProjectModal({ open, onClose, targetType, targetId
           {projects.filter(p => !p.isSystem).map(p => (
               <button
                 key={p.id}
-                onClick={() => assign(p.id)}
+                onClick={async () => await assign(p.id)}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${currentProjectId === p.id ? 'bg-primary/15 border border-primary/30 text-foreground' : 'hover:bg-secondary/50 border border-transparent text-muted-foreground'}`}
             >
               <span>{getEmoji(p.emojiId)}</span> {p.name}

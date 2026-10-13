@@ -1,12 +1,15 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react"
 import type { AppState } from "./store";
 import type { Envelope } from "../shared/api/Envelope";
-import type { LoginResponse } from "../features/accounts/responses/LoginResponse";
 import { setCredentials } from "./auth.slice";
+import type { LoginResponse } from "@/features/accounts/responses/LoginResponse";
 
-export const FEED_SERVICE_PROJECTS_API_URL = "/api/Projects/"
+export const FEED_SERVICE_PROJECTS_API_URL = "http://localhost:5296/api/Projects/"
+export const FEED_SERVICE_CHAT_FOLDERS_API_URL = "http://localhost:5296/api/ChatFolders/";
+export const FEED_SERVICE_FRAGMENT_FOLDERS_API_URL = "/api/FragmentFolders/";
+export const FEED_SERVICE_CHATS_API_URL = "http://localhost:5296/api/Chats/";
+export const FEED_SERVICE_FRAGMENTS_API_URL = "/api/Fragments/";
 export const USER_SERVICE_API_URL = "/api/Auth/";
-export const PAYMENT_SERVICE_API_URL = "/api/Payments/";
 
 const baseQuery = fetchBaseQuery({
     credentials: "include",
@@ -54,5 +57,5 @@ const baseQueryWithRefresh: typeof baseQuery = async (args, api, extraOptions) =
 export const baseApi = createApi({
     baseQuery: baseQueryWithRefresh,
     endpoints: () => ({}),
-    tagTypes: ["Acts"]
+    tagTypes: ["Chats"]
 })

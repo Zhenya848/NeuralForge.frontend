@@ -1,28 +1,20 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { getEmoji } from '@/entities/shared/Constants';
+import { FOLDER_ICONS, getFolderIcon } from '@/entities/shared/Constants';
 import type { Folder } from '@/entities/folders/Folder';
-
-const ICONS = [
-  '📁','📂','🗂️','💼','📚','📖','📝','🗒️','🗃️','🗄️',
-  '💻','🖥️','⚙️','🔧','🔨','🛠️','🚀','⚡','🔥','✨',
-  '🎨','🎯','🏗️','🧩','🔬','🧪','📐','📊','📈','📉',
-  '🤖','🧠','💡','🔑','🏆','⭐','❤️','💜','💙','💚',
-  '🌐','🌍','🌙','☀️','🎵','🎬','📷','🎮','💰','🏠',
-];
 
 interface FolderIconModalProps {
   folder: Folder;
-  onSave: (emoji: string) => void;
+  onSave: (emojiId: number) => Promise<void>;
   onClose: () => void;
 }
 
 export default function FolderIconModal({ folder, onSave, onClose }: FolderIconModalProps) {
-  const [selected, setSelected] = useState(getEmoji(folder.emojiId) || '📁');
+  const [selected, setSelected] = useState(getFolderIcon(folder.emojiId) || '📁');
   const [custom, setCustom] = useState('');
 
-  const handleSave = () => {
-    onSave(custom.trim() || selected);
+  const handleSave = async () => {
+    await onSave(FOLDER_ICONS.indexOf(custom.trim() || selected));
   };
 
   return (
@@ -59,7 +51,7 @@ export default function FolderIconModal({ folder, onSave, onClose }: FolderIconM
 
         {/* Grid */}
         <div className="grid grid-cols-10 gap-1 mb-4 max-h-36 overflow-y-auto">
-          {ICONS.map(icon => (
+          {FOLDER_ICONS.map(icon => (
             <button
               key={icon}
               onClick={() => { setSelected(icon); setCustom(''); }}

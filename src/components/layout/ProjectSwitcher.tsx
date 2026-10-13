@@ -8,13 +8,22 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
+import type { Project } from '@/entities/projects/Project';
+import type { UpdateProjectDto } from '@/features/projects/models/UpdateProjectDto';
 
-export default function ProjectSwitcher() {
-  const { projects, activeProjectId, setActiveProject } = useStore();
+type Props = {
+  projects: Project[];
+  activeProjectId: string;
+  onChange: (id: string) => void;
+  onCreate: (name: string, description: string, emojiId: number, colorId: number) => Promise<void>;
+  onUpdate: (projects: UpdateProjectDto[]) => Promise<void>;
+};
+
+export default function ProjectSwitcher({projects, activeProjectId, onChange, onCreate, onUpdate}: Props) {
   const [manageOpen, setManageOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
 
-  const active = projects.find(p => p.id === activeProjectId);
+  const active = projects?.find(p => p.id === activeProjectId);
   const label = active
     ? active.name
     : (activeProjectId === 'none' ? 'Без проекта' : 'Все проекты');
@@ -34,15 +43,15 @@ export default function ProjectSwitcher() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="bg-popover border-border w-56">
           <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Проекты</DropdownMenuLabel>
-          <DropdownMenuItem className="gap-2 text-xs" onClick={() => setActiveProject('all')}>
+          <DropdownMenuItem className="gap-2 text-xs" onClick={() => onChange('all')}>
             <Layers className="w-3.5 h-3.5" /> Все проекты
           </DropdownMenuItem>
-          <DropdownMenuItem className="gap-2 text-xs" onClick={() => setActiveProject('none')}>
+          <DropdownMenuItem className="gap-2 text-xs" onClick={() => onChange('none')}>
             <CircleDot className="w-3.5 h-3.5" /> Без проекта
           </DropdownMenuItem>
-          {projects.filter(p => !p.isSystem).length > 0 && <DropdownMenuSeparator />}
-          {projects.filter(p => !p.isSystem).map(p => (
-            <DropdownMenuItem key={p.id} className="gap-2 text-xs" onClick={() => setActiveProject(p.id)}>
+          {projects.length > 0 && <DropdownMenuSeparator />}
+          {projects.map(p => (
+            <DropdownMenuItem key={p.id} className="gap-2 text-xs" onClick={() => onChange(p.id)}>
               <span>{getEmoji(p.emojiId)}</span> {p.name}
             </DropdownMenuItem>
           ))}
@@ -56,8 +65,8 @@ export default function ProjectSwitcher() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <ProjectsModal open={manageOpen} onClose={() => setManageOpen(false)} />
-      <CreateProjectModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      <ProjectsModal initProjects={projects} open={manageOpen} onClose={() => setManageOpen(false)} onUpdate={onUpdate} />
+      <CreateProjectModal open={createOpen} onClose={() => setCreateOpen(false)} onCreate={onCreate} />
     </>
   );
 }
